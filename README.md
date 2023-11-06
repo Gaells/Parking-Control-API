@@ -1,5 +1,5 @@
 # Parking-Control-API
-Construção de um projeto Spring Boot (Parking Control API), contem os métodos POST, GETONE, GETALL, DELETE, PUT.
+Construção de um projeto Spring Boot (Parking Control API), contem os métodos POST, GETONE, GETALL, DELETE, PUT, conteúdo baseado na video aula Spring Boot | Curso Completo 2022, do canal Michelli Brito .
 
 Preparação Ambiente:
 - JDK 17
