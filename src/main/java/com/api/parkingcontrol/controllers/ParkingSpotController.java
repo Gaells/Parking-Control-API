@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @RestController
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -32,21 +33,27 @@ public class ParkingSpotController {
     }
 
     @PostMapping
-    public ResponseEntity<Object> saveParkingSpot(@RequestBody @Valid ParkingSpotDto parkingSpotDto){
-        if(parkingSpotService.existsByLicensePlateCar(parkingSpotDto.getLicensePlateCar())){
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Conflito: A Placa do carro já está em uso!");
+    public ResponseEntity<Object> saveParkingSpot(@RequestBody @Valid ParkingSpotDto parkingSpotDto) {
+        // Verificar condições usando stream
+        if (Stream.of(
+            parkingSpotService.existsByLicensePlateCar(parkingSpotDto.getLicensePlateCar()),
+            parkingSpotService.existsByParkingSpotNumber(parkingSpotDto.getParkingSpotNumber()),
+            parkingSpotService.existsByApartmentAndBlock(parkingSpotDto.getApartment(), parkingSpotDto.getBlock())
+        ).anyMatch(condition -> condition)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Conflito: A Placa do carro, Vaga de Estacionamento ou Apartamento/Bloco já estão em uso!");
         }
-        if(parkingSpotService.existsByParkingSpotNumber(parkingSpotDto.getParkingSpotNumber())){
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Conflito: A Vaga de Estacionamento já está em uso!");
-        }
-        if(parkingSpotService.existsByApartmentAndBlock(parkingSpotDto.getApartment(), parkingSpotDto.getBlock())){
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Conflito: A Vaga de Estacionamento já está em uso para esse Apartamento/Bloco!");
-        }
-        var parkingSpotModel = new ParkingSpotModel();
-        BeanUtils.copyProperties(parkingSpotDto, parkingSpotModel);
-        parkingSpotModel.setRegistrationDate(LocalDateTime.now(ZoneId.of("UTC")));
-        return ResponseEntity.status(HttpStatus.CREATED).body(parkingSpotService.save(parkingSpotModel));
+
+        // Operação de salvamento em uma nova thread
+        new Thread(() -> {
+            var parkingSpotModel = new ParkingSpotModel();
+            BeanUtils.copyProperties(parkingSpotDto, parkingSpotModel);
+            parkingSpotModel.setRegistrationDate(LocalDateTime.now(ZoneId.of("UTC")));
+            parkingSpotService.save(parkingSpotModel);
+        }).start();
+
+        return ResponseEntity.status(HttpStatus.CREATED).body("Operação de salvamento iniciada em uma nova thread.");
     }
+
 
     @GetMapping
     public ResponseEntity<Page<ParkingSpotModel>> getAllParkingSpots(@PageableDefault(page = 0, size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable){

@@ -23,8 +23,15 @@ public class ParkingSpotService {
 
     @Transactional
     public ParkingSpotModel save(ParkingSpotModel parkingSpotModel) {
-        return parkingSpotRepository.save(parkingSpotModel);
+        // Utilizando lambda expression para uma operação customizada
+        return Optional.of(parkingSpotModel)
+                       .map(model -> parkingSpotRepository.save(model))
+                       .orElseThrow(() -> new RuntimeException("Erro ao salvar o modelo de vaga de estacionamento."));
     }
+    // outra forma sem o lambda
+    //public ParkingSpotModel save(ParkingSpotModel parkingSpotModel) {
+        //return parkingSpotRepository.save(parkingSpotModel);
+    //}
 
     public boolean existsByLicensePlateCar(String licensePlateCar) {
         return parkingSpotRepository.existsByLicensePlateCar(licensePlateCar);
